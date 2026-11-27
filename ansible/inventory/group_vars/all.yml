@@ -3,7 +3,7 @@
 # app01's address is NOT set here: it comes from ansible_host in inventory/hosts.ini, so there is one place to change it.
 
 # Your copy of the repo on GitHub (your account or your organization).
-runner_repo_url: "https://github.com/zulhardy-lab/homelab-lite"
+runner_repo_url: "https://github.com/CHANGE-ME/homelab-lite"
 
 # GitHub Actions self-hosted runner on ci01 (pinned version + checksum, same as zulhardy-lab/homelab).
 # Checksum computed from the release tarball on 2026-11-26.
