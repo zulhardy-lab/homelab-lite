@@ -471,6 +471,9 @@ This is the moment the whole lab exists for: a change goes from your idea to a r
    deploy" shows the new commit.
 5. Open the example-data link from the dashboard: your change is live.
 
+👉 **Next, do the same from your own laptop** with VS Code and Git, the way real projects work:
+[LAPTOP.md](LAPTOP.md).
+
 ---
 
 ## Part 10 — Add your own app

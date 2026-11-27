@@ -55,6 +55,7 @@ deploy/               compose.yml and Caddyfile: how app01 runs the apps
 scripts/              pipeline logic (the workflows only call these)
 .github/workflows/    pr-checks.yml (every PR), deploy.yml (after merge)
 docs/SETUP.md         the beginner guide
+docs/LAPTOP.md        working on the code from your laptop (VS Code + Git)
 AI-RULES.md           rules for AI coding agents working in this repo
 ```
 
