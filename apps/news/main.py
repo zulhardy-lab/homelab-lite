@@ -116,7 +116,7 @@ def render(feed, error, updated):
     stamp = time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime(updated)) if updated else "never"
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Top breaking news headlines</title>
+<title>Top very sad sad news headlines</title>
 <style>
 body {{ font-family: system-ui, sans-serif; margin: 2rem auto; max-width: 48rem; padding: 0 1rem; color: #222; }}
 li {{ margin: .6rem 0; }} small {{ color: #666; }} .note {{ color: #8a5a00; }}
