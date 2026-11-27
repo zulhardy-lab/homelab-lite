@@ -121,7 +121,7 @@ def render(feed, error, updated):
 body {{ font-family: system-ui, sans-serif; margin: 2rem auto; max-width: 48rem; padding: 0 1rem; color: #222; }}
 li {{ margin: .6rem 0; }} small {{ color: #666; }} .note {{ color: #8a5a00; }}
 </style></head><body>
-<h1>Top {TOP} headlines</h1>
+<h1>Top {TOP} headlines around the world</h1>
 {note}{body}
 <p><small>Last updated {e(stamp)}. Headlines link to the original story.</small></p>
 </body></html>"""
