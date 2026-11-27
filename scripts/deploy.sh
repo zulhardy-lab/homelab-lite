@@ -4,6 +4,8 @@
 #
 #   1. copy deploy/ (compose.yml, Caddyfile) to app01 and write its .env (images, tag, address)
 #   2. docker compose pull + up on app01, as the deploy user (SSH key ~/.ssh/id_deploy from deploy-access.yml).
+#      --remove-orphans stops and removes containers whose service was deleted from compose.yml, so removing an
+#      app in a pull request removes it from app01 too.
 #      Its output goes to status/deploy.log on app01 as it happens, for the dashboard's "Last deploy" log.
 #   3. record the deploy for the dashboard, and remove images unused for 3 days (keeps app01's small disk free)
 #   4. smoke tests: the dashboard on the plain address, every other app on <app>.<app01-ip>.nip.io
@@ -36,7 +38,7 @@ log="${lab}/status/deploy.log"
 on_app01 "cd ${lab}/deploy && (
   echo \"\$(date -u +%Y-%m-%dT%H:%M:%SZ) deploy of commit ${tag}\"
   echo \"build logs: ${run_url}\"
-  docker compose pull && docker compose up -d
+  docker compose pull && docker compose up -d --remove-orphans
   rc=\$?
   echo \"\$(date -u +%Y-%m-%dT%H:%M:%SZ) finished, exit code \$rc\"
   exit \$rc
