@@ -1,0 +1,24 @@
+---
+# Settings for both VMs. CHANGE runner_repo_url to your own copy of this repo (docs/SETUP.md, Part 4).
+# app01's address is NOT set here: it comes from ansible_host in inventory/hosts.ini, so there is one place to change it.
+
+# Your copy of the repo on GitHub (your account or your organization).
+runner_repo_url: "https://github.com/CHANGE-ME/homelab-lite"
+
+# GitHub Actions self-hosted runner on ci01 (pinned version + checksum, same as zulhardy-lab/homelab).
+# Checksum computed from the release tarball on 2026-11-26.
+runner_version: "2.338.2"
+runner_sha256: "baebf204307bac6193480852732f0aba2ae97b6c5597c244f4d5558390147c40"
+runner_user: gha-runner
+runner_dir: /opt/actions-runner
+runner_name: ci01
+runner_labels: "homelab-lite,ci01"
+
+# app01
+app01_ip: "{{ hostvars['app01']['ansible_host'] }}"
+deploy_user: deploy # runs the containers; ci01's runner logs in as this user to deploy
+lab_dir: /srv/homelab-lite # deploy/ files and the status files live here
+status_dir: /srv/homelab-lite/status # read-only for the dashboard container
+
+# ci01
+heartbeat_user: heartbeat # sends ci01's and the runner's state to app01 every 30 seconds

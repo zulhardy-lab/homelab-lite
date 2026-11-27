@@ -1,0 +1,23 @@
+---
+# Docker and Docker Compose on app01 ONLY. ci01 never gets Docker: the docker group is effectively root.
+# Packages from Ubuntu's own (signed) archive, so no third-party repository or install script is needed.
+# [Unverified] package names on Ubuntu 26.04: docker.io and docker-compose-v2 (the names used since 24.04).
+
+- name: Docker on app01
+  hosts: app
+  become: true
+  tasks:
+    - name: Install Docker and the Compose plugin
+      ansible.builtin.apt:
+        name:
+          - docker.io
+          - docker-compose-v2
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Docker starts now and after every reboot
+      ansible.builtin.systemd_service:
+        name: docker
+        state: started
+        enabled: true

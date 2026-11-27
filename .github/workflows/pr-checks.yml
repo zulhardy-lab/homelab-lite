@@ -1,0 +1,124 @@
+name: PR checks
+
+# Every pull request, on GitHub-hosted runners only (free for public repos), NEVER on ci01:
+# your self-hosted runner only runs code that was reviewed and merged (deploy.yml).
+#
+#   lint           yamllint, Ansible syntax-check + ansible-lint, shellcheck, Python syntax
+#   repo-scan      Trivy: secrets, misconfigurations, dependency vulnerabilities in the repo
+#   deploy-config  compose.yml and the Caddyfile are valid; the pinned Caddy image pulls and passes Trivy
+#   apps           per app: unit tests, build, run it read-only and smoke-test it, Trivy image scan
+#   quality        one summary check that fails if anything above failed (make lint + quality required)
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Python (ansible-core 2.22 needs >= 3.13)
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.13"
+
+      - name: Install pinned lint tools
+        run: |
+          pip install ansible-core==2.22.0 ansible-lint==26.11.1 yamllint==1.38.0
+          command -v shellcheck >/dev/null || { sudo apt-get update -q && sudo apt-get install -y -q shellcheck; }
+
+      - name: Lint
+        run: bash scripts/lint.sh
+
+  repo-scan:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Security scan (repo)
+        run: bash scripts/security-scan.sh repo
+
+  deploy-config:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Check compose.yml, the Caddyfile and the Caddy image
+        run: bash scripts/check-deploy-config.sh
+
+  detect:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      apps: ${{ steps.list.outputs.apps }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: List apps
+        id: list
+        run: echo "apps=$(bash scripts/list-apps.sh)" >> "${GITHUB_OUTPUT}"
+
+  apps:
+    needs: detect
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        app: ${{ fromJSON(needs.detect.outputs.apps) }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.13"
+
+      - name: Unit tests
+        env:
+          APP: ${{ matrix.app }}
+        run: bash scripts/unit-test.sh "${APP}"
+
+      - name: Build, run read-only, smoke test, scan (not pushed)
+        env:
+          APP: ${{ matrix.app }}
+          IMAGE_TAG: pr-${{ github.event.pull_request.number }}
+        run: bash scripts/build-image.sh "${APP}"
+
+  quality:
+    needs: [lint, repo-scan, deploy-config, detect, apps]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: All checks passed?
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          echo "${RESULTS}" | python3 -I -c '
+          import json, sys
+          bad = {k: v["result"] for k, v in json.load(sys.stdin).items() if v["result"] != "success"}
+          print("Failed:", bad) if bad else print("All checks passed.")
+          sys.exit(1 if bad else 0)'

@@ -1,0 +1,107 @@
+---
+# Installs the GitHub Actions self-hosted runner on ci01 as a dedicated, non-root user, registered to YOUR copy of
+# this repo (runner_repo_url). It is NOT in the docker group, and ci01 has no Docker.
+# The registration token is short-lived and typed in by you at run time; it is never stored.
+# Run last: ansible-playbook playbooks/runner.yml -K
+- name: Install GitHub Actions self-hosted runner
+  hosts: ci
+  become: true
+  vars_prompt:
+    - name: runner_token
+      prompt: "Paste the runner registration token (your repo > Settings > Actions > Runners > New self-hosted runner)"
+      private: true
+  vars:
+    runner_tarball: "actions-runner-linux-x64-{{ runner_version }}.tar.gz"
+  tasks:
+    - name: Tools the deploy job uses (git for checkout; ansible-inventory reads app01's address)
+      ansible.builtin.apt:
+        name:
+          - git
+          - ansible
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Create runner user (no extra groups, in particular NOT docker, which is root-equivalent)
+      ansible.builtin.user:
+        name: "{{ runner_user }}"
+        shell: /bin/bash
+        create_home: true
+
+    - name: Create runner directory
+      ansible.builtin.file:
+        path: "{{ runner_dir }}"
+        state: directory
+        owner: "{{ runner_user }}"
+        group: "{{ runner_user }}"
+        mode: "0750"
+
+    - name: Download runner release (checksum verified)
+      ansible.builtin.get_url:
+        url: "https://github.com/actions/runner/releases/download/v{{ runner_version }}/{{ runner_tarball }}"
+        dest: "/tmp/{{ runner_tarball }}"
+        checksum: "sha256:{{ runner_sha256 }}"
+        mode: "0644"
+
+    - name: Extract runner
+      ansible.builtin.unarchive:
+        src: "/tmp/{{ runner_tarball }}"
+        dest: "{{ runner_dir }}"
+        remote_src: true
+        owner: "{{ runner_user }}"
+        group: "{{ runner_user }}"
+        creates: "{{ runner_dir }}/config.sh"
+
+    - name: Install runner OS dependencies
+      ansible.builtin.command: "{{ runner_dir }}/bin/installdependencies.sh"
+      args:
+        creates: "{{ runner_dir }}/.deps-installed"
+      register: deps_out
+      changed_when: deps_out.rc == 0
+
+    - name: Mark dependencies installed
+      ansible.builtin.file:
+        path: "{{ runner_dir }}/.deps-installed"
+        state: touch
+        owner: "{{ runner_user }}"
+        mode: "0644"
+        modification_time: preserve
+        access_time: preserve
+
+    - name: Register runner with GitHub (runs as the runner user, not root)
+      become: true
+      become_user: "{{ runner_user }}"
+      ansible.builtin.command:
+        argv:
+          - "{{ runner_dir }}/config.sh"
+          - --unattended
+          - --url
+          - "{{ runner_repo_url }}"
+          - --token
+          - "{{ runner_token }}"
+          - --name
+          - "{{ runner_name }}"
+          - --labels
+          - "{{ runner_labels }}"
+          - --work
+          - _work
+        chdir: "{{ runner_dir }}"
+        creates: "{{ runner_dir }}/.runner"
+      no_log: true
+
+    - name: Install runner as a systemd service
+      ansible.builtin.command:
+        cmd: "./svc.sh install {{ runner_user }}"
+        chdir: "{{ runner_dir }}"
+        creates: "{{ runner_dir }}/.service"
+
+    - name: Start runner service
+      ansible.builtin.command:
+        cmd: ./svc.sh start
+        chdir: "{{ runner_dir }}"
+      changed_when: false # svc.sh start is safe to repeat
+
+    - name: Remove downloaded tarball
+      ansible.builtin.file:
+        path: "/tmp/{{ runner_tarball }}"
+        state: absent

@@ -1,0 +1,98 @@
+---
+# Lets the pipeline deploy: ci01's runner user logs in to app01 as "deploy" with its own SSH key.
+#   ci01  : user gha-runner (the runner, installed later by runner.yml) gets a key pair and knows app01's host key
+#   app01 : user deploy (in the docker group: it runs the containers), the lab folders, and the runner's public key
+# Run after docker.yml: ansible-playbook playbooks/deploy-access.yml -K
+# Accepted trade-off: "deploy" is in the docker group, which is effectively root on app01 (docs/SETUP.md, Security).
+
+- name: Deploy key on ci01
+  hosts: ci
+  become: true
+  tasks:
+    - name: Runner user (no extra groups; runner.yml installs the runner itself)
+      ansible.builtin.user:
+        name: "{{ runner_user }}"
+        shell: /bin/bash
+        create_home: true
+
+    - name: Runner's .ssh folder
+      ansible.builtin.file:
+        path: "/home/{{ runner_user }}/.ssh"
+        state: directory
+        owner: "{{ runner_user }}"
+        group: "{{ runner_user }}"
+        mode: "0700"
+
+    - name: Deploy key pair (created once, never leaves ci01)
+      become: true
+      become_user: "{{ runner_user }}"
+      ansible.builtin.command:
+        cmd: "ssh-keygen -q -t ed25519 -N '' -C 'homelab-lite deploy from ci01' -f /home/{{ runner_user }}/.ssh/id_deploy"
+        creates: "/home/{{ runner_user }}/.ssh/id_deploy"
+
+    - name: Read the public half of the deploy key
+      ansible.builtin.slurp:
+        src: "/home/{{ runner_user }}/.ssh/id_deploy.pub"
+      register: deploy_pub
+
+    - name: Read app01's SSH host key
+      ansible.builtin.command:
+        cmd: "ssh-keyscan -t ed25519 {{ app01_ip }}"
+      register: app01_hostkey
+      changed_when: false
+
+    - name: Runner trusts app01's host key
+      ansible.builtin.known_hosts:
+        path: "/home/{{ runner_user }}/.ssh/known_hosts"
+        name: "{{ app01_ip }}"
+        key: "{{ app01_hostkey.stdout_lines | select('match', '^[^#]') | first }}"
+        state: present
+
+    - name: Known hosts file belongs to the runner user
+      ansible.builtin.file:
+        path: "/home/{{ runner_user }}/.ssh/known_hosts"
+        owner: "{{ runner_user }}"
+        group: "{{ runner_user }}"
+        mode: "0644"
+
+- name: Deploy user on app01
+  hosts: app
+  become: true
+  tasks:
+    - name: Deploy user, in the docker group
+      ansible.builtin.user:
+        name: "{{ deploy_user }}"
+        shell: /bin/bash
+        groups: docker
+        append: true
+        create_home: true
+
+    - name: Lab folders (deploy files, status files)
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_user }}"
+        mode: "0755"
+      loop:
+        - "{{ lab_dir }}"
+        - "{{ lab_dir }}/deploy"
+        - "{{ status_dir }}"
+
+    - name: Deploy user's .ssh folder
+      ansible.builtin.file:
+        path: "/home/{{ deploy_user }}/.ssh"
+        state: directory
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_user }}"
+        mode: "0700"
+
+    - name: Allow ci01's deploy key to log in as deploy
+      ansible.builtin.lineinfile:
+        path: "/home/{{ deploy_user }}/.ssh/authorized_keys"
+        regexp: "homelab-lite deploy from ci01$"
+        line: "{{ hostvars['ci01']['deploy_pub']['content'] | b64decode | trim }}"
+        create: true
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_user }}"
+        mode: "0600"

@@ -1,0 +1,40 @@
+---
+# Basics for both VMs: the right OS, the hostname from the inventory (ci01 / app01), and a few tools.
+# Run first: ansible-playbook playbooks/base.yml -K
+
+- name: Base setup
+  hosts: lab
+  become: true
+  tasks:
+    - name: Stop if a host is not Ubuntu 26.04 (the pinned versions are built for it)
+      ansible.builtin.assert:
+        that:
+          - ansible_facts["distribution"] == "Ubuntu"
+          - ansible_facts["distribution_version"] == "26.04"
+        fail_msg: >-
+          homelab-lite targets Ubuntu 26.04; {{ inventory_hostname }} is
+          {{ ansible_facts['distribution'] }} {{ ansible_facts['distribution_version'] }}
+
+    - name: Map the hostname to 127.0.1.1 first (keeps sudo from complaining during a rename)
+      ansible.builtin.lineinfile:
+        path: /etc/hosts
+        regexp: '^127\.0\.1\.1\s'
+        line: "127.0.1.1 {{ inventory_hostname }}"
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Set the hostname
+      ansible.builtin.hostname:
+        name: "{{ inventory_hostname }}"
+
+    - name: Tools the lab scripts use
+      ansible.builtin.apt:
+        name:
+          - python3
+          - curl
+          - openssh-client
+          - acl # lets Ansible run tasks as other unprivileged users (gha-runner, heartbeat)
+        state: present
+        update_cache: true
+        cache_valid_time: 3600

@@ -1,0 +1,25 @@
+# Secrets and keys — never commit
+*.pem
+*.key
+id_*
+!id_*.pub
+.env
+.env.*
+*.vault
+vault-pass*
+
+# Python caches (created when tests run locally)
+__pycache__/
+*.pyc
+
+# Compose settings written on app01 by scripts/deploy.sh
+deploy/.env
+
+# Ansible
+*.retry
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
