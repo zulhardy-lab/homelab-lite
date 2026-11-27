@@ -17,7 +17,7 @@ x-hardened: &hardened
 
 services:
   caddy:
-    # Caddy 2 (Alpine build of 2026-11-13), pinned by digest, read from Docker Hub's API on 2026-11-27. The tag name
+    # Caddy v2.11.9 (the 2-alpine build of 2026-11-13; version printed by the PR check), pinned by digest. The tag name
     # moves; the digest doesn't. Older pinned builds (2.11.2, 2.11.4) were blocked by the Trivy gate. The PR checks
     # pull and scan this exact image, and print its Caddy version, before it reaches app01.
     image: caddy:2-alpine@sha256:003a97808e781aa9f7e75cc2f43d34d461099031faf5e20faefb9f61126836f0
