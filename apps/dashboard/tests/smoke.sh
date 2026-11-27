@@ -7,4 +7,5 @@ host=()
 
 curl -fsS --max-time 10 "${host[@]}" "${base}/health" | grep -qx ok || { echo "FAIL: /health" >&2; exit 1; }
 curl -fsS --max-time 10 "${host[@]}" "${base}/" | grep -q "homelab-lite status" || { echo "FAIL: page" >&2; exit 1; }
+curl -fsS --max-time 10 "${host[@]}" "${base}/live" | grep -q "Containers on app01" || { echo "FAIL: /live" >&2; exit 1; }
 echo "dashboard: ok"
