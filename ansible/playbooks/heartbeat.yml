@@ -1,0 +1,141 @@
+---
+# ci01's heartbeat: every 30 seconds ci01 tells app01 it's up and whether the GitHub runner is busy, idle or stopped.
+# The dashboard shows that without any GitHub token.
+#   ci01  : user "heartbeat" with its own SSH key, the heartbeat script and a 30-second timer
+#   app01 : that key may log in as deploy, but ONLY runs save-ci01-heartbeat (an SSH forced command, "restrict":
+#           no shell, no forwarding, no other command)
+# Run after deploy-access.yml: ansible-playbook playbooks/heartbeat.yml -K
+
+- name: Heartbeat sender on ci01
+  hosts: ci
+  become: true
+  tasks:
+    - name: Heartbeat user (no login password, no extra groups)
+      ansible.builtin.user:
+        name: "{{ heartbeat_user }}"
+        system: true
+        shell: /usr/sbin/nologin
+        home: "/var/lib/{{ heartbeat_user }}"
+        create_home: true
+
+    - name: Heartbeat user's .ssh folder
+      ansible.builtin.file:
+        path: "/var/lib/{{ heartbeat_user }}/.ssh"
+        state: directory
+        owner: "{{ heartbeat_user }}"
+        group: "{{ heartbeat_user }}"
+        mode: "0700"
+
+    - name: Heartbeat key pair (created once, never leaves ci01)
+      become: true
+      become_user: "{{ heartbeat_user }}"
+      ansible.builtin.command:
+        cmd: "ssh-keygen -q -t ed25519 -N '' -C 'homelab-lite heartbeat from ci01' -f /var/lib/{{ heartbeat_user }}/.ssh/id_heartbeat"
+        creates: "/var/lib/{{ heartbeat_user }}/.ssh/id_heartbeat"
+
+    - name: Read the public half of the heartbeat key
+      ansible.builtin.slurp:
+        src: "/var/lib/{{ heartbeat_user }}/.ssh/id_heartbeat.pub"
+      register: heartbeat_pub
+
+    - name: Read app01's SSH host key
+      ansible.builtin.command:
+        cmd: "ssh-keyscan -t ed25519 {{ app01_ip }}"
+      register: app01_hostkey
+      changed_when: false
+
+    - name: Heartbeat user trusts app01's host key
+      ansible.builtin.known_hosts:
+        path: "/var/lib/{{ heartbeat_user }}/.ssh/known_hosts"
+        name: "{{ app01_ip }}"
+        key: "{{ app01_hostkey.stdout_lines | select('match', '^[^#]') | first }}"
+        state: present
+
+    - name: Known hosts file belongs to the heartbeat user
+      ansible.builtin.file:
+        path: "/var/lib/{{ heartbeat_user }}/.ssh/known_hosts"
+        owner: "{{ heartbeat_user }}"
+        group: "{{ heartbeat_user }}"
+        mode: "0644"
+
+    - name: Install the heartbeat script
+      ansible.builtin.copy:
+        src: ci01-heartbeat.sh
+        dest: /usr/local/bin/ci01-heartbeat
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Heartbeat service and timer (every 30 seconds)
+      ansible.builtin.copy:
+        dest: "/etc/systemd/system/{{ item.name }}"
+        owner: root
+        group: root
+        mode: "0644"
+        content: "{{ item.content }}"
+      loop:
+        - name: homelab-lite-heartbeat.service
+          content: |
+            [Unit]
+            Description=homelab-lite: tell app01 that ci01 is up and what the runner is doing
+            After=network-online.target
+
+            [Service]
+            Type=oneshot
+            User={{ heartbeat_user }}
+            Environment=APP01_IP={{ app01_ip }}
+            Environment=DEPLOY_USER={{ deploy_user }}
+            ExecStart=/usr/local/bin/ci01-heartbeat
+        - name: homelab-lite-heartbeat.timer
+          content: |
+            [Unit]
+            Description=homelab-lite: ci01 heartbeat every 30 seconds
+
+            [Timer]
+            OnBootSec=20s
+            OnUnitActiveSec=30s
+            AccuracySec=1s
+
+            [Install]
+            WantedBy=timers.target
+      loop_control:
+        label: "{{ item.name }}"
+      notify: Reload systemd
+
+    - name: Apply systemd changes now
+      ansible.builtin.meta: flush_handlers
+
+    - name: Start the timer now and after every reboot
+      ansible.builtin.systemd_service:
+        name: homelab-lite-heartbeat.timer
+        state: started
+        enabled: true
+
+  handlers:
+    - name: Reload systemd
+      ansible.builtin.systemd_service:
+        daemon_reload: true
+
+- name: Heartbeat receiver on app01
+  hosts: app
+  become: true
+  tasks:
+    - name: Install the receiver (the only command the heartbeat key can run)
+      ansible.builtin.copy:
+        src: save-ci01-heartbeat.py
+        dest: /usr/local/bin/save-ci01-heartbeat
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Allow the heartbeat key, restricted to the receiver
+      ansible.builtin.lineinfile:
+        path: "/home/{{ deploy_user }}/.ssh/authorized_keys"
+        regexp: "homelab-lite heartbeat from ci01$"
+        line: >-
+          restrict,command="/usr/local/bin/save-ci01-heartbeat"
+          {{ hostvars['ci01']['heartbeat_pub']['content'] | b64decode | trim }}
+        create: true
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_user }}"
+        mode: "0600"

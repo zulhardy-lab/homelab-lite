@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Test data for apps/news. Source: NASA, https://www.nasa.gov/news-release/feed/ , saved 2026-11-27.
+     Trimmed: first 6 items only; kept title, link, pubDate and guid; article text, images and other fields removed.
+     NASA content is generally not subject to copyright in the United States. Credit: NASA. -->
+<rss version="2.0">
+<channel>
+  <title>NASA</title>
+  <link>https://www.nasa.gov</link>
+  <description>Official National Aeronautics and Space Administration Website</description>
+  <item>
+    <title>APOD: 2026 November 26 – Eye in the Sky: The Milky Way over Lençóis</title>
+    <link>https://science.nasa.gov/image-article/apod-2026-november-26-eye-in-the-sky-the-milky-way-over-lencois/</link>
+    <pubDate>Thu, 26 Nov 2026 05:05:00 +0000</pubDate>
+    <guid isPermaLink="false">https://science.nasa.gov/image-article/apod-2026-november-26-eye-in-the-sky-the-milky-way-over-lencois/</guid>
+  </item>
+  <item>
+    <title>Seeking Refuge on Resolution Island</title>
+    <link>https://science.nasa.gov/earth/earth-observatory/seeking-refuge-on-resolution-island/</link>
+    <pubDate>Thu, 26 Nov 2026 05:01:00 +0000</pubDate>
+    <guid isPermaLink="false">https://science.nasa.gov/earth/earth-observatory/seeking-refuge-on-resolution-island/</guid>
+  </item>
+  <item>
+    <title>NASA Enhances Supplier Program, Announces Mentor-Protégé Agreement</title>
+    <link>https://www.nasa.gov/organizations/osbp/nasa-enhances-supplier-program-announces-mentor-protege-agreement/</link>
+    <pubDate>Wed, 25 Nov 2026 19:06:56 +0000</pubDate>
+    <guid isPermaLink="false">https://www.nasa.gov/?p=1068194</guid>
+  </item>
+  <item>
+    <title>NASA Eyes Crop Candidates for Future Menus</title>
+    <link>https://science.nasa.gov/directorates/smd/nasa-eyes-crop-candidates-for-future-menus/</link>
+    <pubDate>Wed, 25 Nov 2026 17:53:42 +0000</pubDate>
+    <guid isPermaLink="false">https://science.nasa.gov/directorates/smd/nasa-eyes-crop-candidates-for-future-menus/</guid>
+  </item>
+  <item>
+    <title>Childhood, Career Come Full Circle for Budget Analyst at NASA Goddard</title>
+    <link>https://www.nasa.gov/centers-and-facilities/goddard/childhood-career-come-full-circle-for-budget-analyst-at-nasa-goddard/</link>
+    <pubDate>Wed, 25 Nov 2026 16:47:29 +0000</pubDate>
+    <guid isPermaLink="false">https://www.nasa.gov/?p=1067811</guid>
+  </item>
+  <item>
+    <title>Eye of the Sahara</title>
+    <link>https://www.nasa.gov/image-article/eye-of-the-sahara/</link>
+    <pubDate>Wed, 25 Nov 2026 16:21:04 +0000</pubDate>
+    <guid isPermaLink="false">https://www.nasa.gov/?post_type=image-article&amp;p=1067603</guid>
+  </item>
+</channel>
+</rss>

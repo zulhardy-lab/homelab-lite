@@ -1,0 +1,68 @@
+---
+# The status collector on app01: every 30 seconds it writes status.json (app01, Docker, containers, last deploy)
+# for the dashboard. It runs as the deploy user, so the dashboard container never needs the Docker socket.
+# Run after deploy-access.yml: ansible-playbook playbooks/status.yml -K
+
+- name: Status collector on app01
+  hosts: app
+  become: true
+  tasks:
+    - name: Install the collector script
+      ansible.builtin.copy:
+        src: status-collector.py
+        dest: /usr/local/bin/status-collector
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Collector service (runs once each time the timer fires)
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/homelab-lite-status.service
+        owner: root
+        group: root
+        mode: "0644"
+        content: |
+          [Unit]
+          Description=homelab-lite: write status.json for the dashboard
+          After=docker.service
+
+          [Service]
+          Type=oneshot
+          User={{ deploy_user }}
+          Environment=STATUS_DIR={{ status_dir }}
+          Environment=APP01_IP={{ app01_ip }}
+          ExecStart=/usr/local/bin/status-collector
+      notify: Reload systemd
+
+    - name: Collector timer (every 30 seconds)
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/homelab-lite-status.timer
+        owner: root
+        group: root
+        mode: "0644"
+        content: |
+          [Unit]
+          Description=homelab-lite: refresh status.json every 30 seconds
+
+          [Timer]
+          OnBootSec=20s
+          OnUnitActiveSec=30s
+          AccuracySec=1s
+
+          [Install]
+          WantedBy=timers.target
+      notify: Reload systemd
+
+    - name: Apply systemd changes now
+      ansible.builtin.meta: flush_handlers
+
+    - name: Start the timer now and after every reboot
+      ansible.builtin.systemd_service:
+        name: homelab-lite-status.timer
+        state: started
+        enabled: true
+
+  handlers:
+    - name: Reload systemd
+      ansible.builtin.systemd_service:
+        daemon_reload: true

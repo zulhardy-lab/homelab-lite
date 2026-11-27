@@ -1,0 +1,18 @@
+{
+  "title": "ASEAN member states",
+  "columns": ["Member state", "Joined"],
+  "rows": [
+    {"Member state": "Indonesia", "Joined": 1967},
+    {"Member state": "Malaysia", "Joined": 1967},
+    {"Member state": "Philippines", "Joined": 1967},
+    {"Member state": "Singapore", "Joined": 1967},
+    {"Member state": "Thailand", "Joined": 1967},
+    {"Member state": "Brunei Darussalam", "Joined": 1984},
+    {"Member state": "Viet Nam", "Joined": 1995},
+    {"Member state": "Lao PDR", "Joined": 1997},
+    {"Member state": "Myanmar", "Joined": 1997},
+    {"Member state": "Cambodia", "Joined": 1999},
+    {"Member state": "Timor-Leste", "Joined": 2025}
+  ],
+  "source": {"name": "ASEAN Secretariat", "url": "https://asean.org/forging-a-new-era-timor-leste-admitted-into-asean/"}
+}

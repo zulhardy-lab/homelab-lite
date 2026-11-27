@@ -1,0 +1,86 @@
+name: deploy
+
+# After a merge: test and build every app on GitHub's machines, push the images, then deploy from ci01.
+#
+#   detect  (GitHub-hosted) : which apps exist (every apps/<name>/ with a Dockerfile)
+#   build   (GitHub-hosted) : per app: unit tests, build, smoke test, Trivy scan, push ghcr.io/<owner>/<repo>-<app>:<commit>
+#   deploy  (ci01)          : copy deploy/ to app01, compose pull + up, record the deploy, smoke-test every app
+#                             through Caddy (the news check only warns if the feed is down)
+#
+# The self-hosted runner (labels self-hosted, homelab-lite) is only used here: after a merge to main, or a manual run.
+# No approval step: there's one environment, and every change was reviewed in its pull request.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/**"
+      - "deploy/**"
+      - "scripts/**"
+      - ".github/workflows/deploy.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  detect:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      apps: ${{ steps.list.outputs.apps }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: List apps
+        id: list
+        run: echo "apps=$(bash scripts/list-apps.sh)" >> "${GITHUB_OUTPUT}"
+
+  build:
+    needs: detect
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        app: ${{ fromJSON(needs.detect.outputs.apps) }}
+    permissions:
+      contents: read
+      packages: write # push to ghcr.io with the short-lived GITHUB_TOKEN; no stored secret
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.13"
+
+      - name: Unit tests
+        env:
+          APP: ${{ matrix.app }}
+        run: bash scripts/unit-test.sh "${APP}"
+
+      - name: Build, smoke test, scan, then push
+        env:
+          APP: ${{ matrix.app }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash scripts/build-image.sh "${APP}" push
+
+  deploy:
+    needs: build
+    runs-on: [self-hosted, homelab-lite]
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Deploy to app01 and smoke-test every app
+        run: bash scripts/deploy.sh

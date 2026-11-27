@@ -1,0 +1,23 @@
+# Caddy, the reverse proxy on app01 (port 80). It sends each request to the right app container by name:
+#   http://<app01-ip>/                         -> dashboard
+#   http://example-data.<app01-ip>.nip.io      -> example-data
+#   http://news.<app01-ip>.nip.io              -> news
+# nip.io is a free DNS service: any name ending in <ip>.nip.io points at that IP, so no DNS setup is needed.
+# Adding an app: add a block like the ones below, in the same pull request as the app.
+{
+	auto_https off
+	admin off
+}
+
+http://example-data.{$APP01_IP}.nip.io {
+	reverse_proxy example-data:8080
+}
+
+http://news.{$APP01_IP}.nip.io {
+	reverse_proxy news:8080
+}
+
+# Everything else, including the plain address: the dashboard.
+:80 {
+	reverse_proxy dashboard:8080
+}
