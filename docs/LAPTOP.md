@@ -272,14 +272,25 @@ Click **deploy** to watch its log:
 
 ![The deploy log: copy to app01, pull and start, record the deploy, smoke tests ok](images/laptop/17-deploy-log.png)
 
-While it runs, the dashboard (`http://<app01-ip>/`) shows the runner **busy**. Afterwards it's **idle** again, and
-**Last deploy** shows your commit:
+The dashboard (`http://<app01-ip>/`) updates every second, so you can watch it happen:
 
-![The dashboard after the deploy, with the new commit in Last deploy and every container healthy](images/laptop/18-dashboard.png)
+- The runner turns **busy** while the deploy runs, then back to **idle** ("online, waiting for a job").
+- The line under the title shows your commit after **Last deploy**, and each app's image ends in that commit ID.
+- **Last deploy on app01**, at the bottom, is app01's own log of the deploy: pulling the new images, then replacing
+  the containers. It should end with `finished, exit code 0`.
 
-Open the app and see your change (press **Ctrl+F5** if the browser shows the old copy):
+![The dashboard after the deploy: every component up, every container healthy, and the deploy log ending with exit code 0](images/laptop/18-dashboard.png)
 
-![The news page with the new heading](images/laptop/19-news-heading.png)
+Open the app and see your change (press **Ctrl+F5** if the browser shows the old copy). In this example, the change
+compared in [C4](#c4-check-what-you-changed) replaced the news page's heading.
+
+**Before:**
+
+![The news page heading before the change: Top 5 headlines in Asia and the World](images/laptop/19-news-heading-before.png)
+
+**After:**
+
+![The news page heading after the change: Top 5 very sad sad news headlines](images/laptop/19-news-heading-after.png)
 
 ---
 
