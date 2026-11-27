@@ -17,9 +17,9 @@ x-hardened: &hardened
 
 services:
   caddy:
-    # Caddy 2.11.2, pinned by digest. [Unverified] digest, read from Docker Hub's API on 2026-11-27; the PR checks
-    # pull this exact image, so a wrong digest fails there before anything reaches app01.
-    image: caddy:2.11.2-alpine@sha256:834468128c7696cec0ceea6172f7d692daf645ae51983ca76e39da54a97c570d
+    # Caddy 2.11.4, pinned by digest (read from Docker Hub's API on 2026-11-27). 2.11.2 was blocked by the Trivy gate:
+    # fixed vulnerabilities in 2.11.3 / 2.11.4. The PR checks pull and scan this exact image before it reaches app01.
+    image: caddy:2.11.4-alpine@sha256:6aeddd44c3078b0f9a35206472a11420648a79c184603ef95957d0a20044cb2b
     container_name: caddy
     <<: *hardened
     cap_add: [NET_BIND_SERVICE] # to listen on port 80
