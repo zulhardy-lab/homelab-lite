@@ -9,7 +9,7 @@ host=()
 
 curl -fsS --max-time 10 "${host[@]}" "${base}/health" | grep -qx ok || { echo "FAIL: /health" >&2; exit 1; }
 page="$(curl -fsS --max-time 30 "${host[@]}" "${base}/")" || { echo "FAIL: page" >&2; exit 1; }
-count="$(grep -o "class='headline'" <<<"${page}" | wc -l)"
+count="$( (grep -o "class='headline'" <<<"${page}" || true) | wc -l)"  # grep exits 1 when there are none
 if [ "${count}" -eq 0 ]; then
   echo "::warning title=news: no headlines::The news page loads, but no headlines came back. Is the feed (NEWS_FEED_URL) up?"
 else
