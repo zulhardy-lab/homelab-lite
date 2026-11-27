@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-"""status-collector: writes STATUS_DIR/status.json for the dashboard. Runs on app01 every 30 seconds
-(systemd timer from status.yml), as the deploy user, which may talk to Docker.
+"""status-collector: writes STATUS_DIR/status.json for the dashboard. Runs on app01 as a long-running service
+(from status.yml) that refreshes the file every INTERVAL seconds (default 1), as the deploy user, which may talk
+to Docker. A loop in one process instead of a timer: starting Python every second would cost more than the work.
 
 The dashboard container never gets the Docker socket: it only reads this file, mounted read-only.
 
@@ -15,11 +16,13 @@ import json
 import os
 import shutil
 import subprocess
+import sys
 import tempfile
 import time
 
 STATUS_DIR = os.environ.get("STATUS_DIR", "/srv/homelab-lite/status")
 APP01_IP = os.environ.get("APP01_IP", "")
+INTERVAL = float(os.environ.get("INTERVAL", "1"))
 LINK_LABEL = "homelab-lite.link"
 
 
@@ -106,7 +109,7 @@ def write_atomically(path, data):
     os.replace(tmp, path)
 
 
-def main():
+def collect_once():
     docker_state, items = containers()
     write_atomically(os.path.join(STATUS_DIR, "status.json"), {
         "time": time.time(),
@@ -115,6 +118,18 @@ def main():
         "containers": items,
         "last_deploy": last_deploy(),
     })
+
+
+def main():
+    """Collects every INTERVAL seconds. One failed round is logged (journalctl) and the loop carries on; if the
+    file stops being refreshed, the dashboard shows the collector as stopped once it's older than STALE_AFTER."""
+    while True:
+        started = time.monotonic()
+        try:
+            collect_once()
+        except Exception as exc:  # noqa: BLE001 (keep collecting; one bad round mustn't stop the service)
+            print(f"status-collector: {exc!r}", file=sys.stderr, flush=True)
+        time.sleep(max(0.0, INTERVAL - (time.monotonic() - started)))
 
 
 if __name__ == "__main__":
