@@ -490,6 +490,12 @@ Most apps here are small webpages that serve some data. Copy the template:
 
 The first deploy of a new app creates a new package on GitHub's registry: make it public as in Part 8.
 
+**Removing an app** works the same way, in one pull request: delete its service from `deploy/compose.yml`, its block
+from `deploy/Caddyfile`, and its `apps/<your-app>/` folder. After the merge, the deploy stops and removes its container
+on app01 (`docker compose up --remove-orphans`), and it disappears from the dashboard. Don't stop containers by hand on
+app01: the next deploy would start them again, because the repository decides what runs. Its package on GitHub's
+registry stays; delete it there if you want (**Package settings** → **Delete this package**, which can't be undone).
+
 ---
 
 ## Part 11 — Test the safety controls
