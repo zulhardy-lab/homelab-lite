@@ -51,7 +51,7 @@ flowchart TB
 
 - **ci01** is the control machine: you type almost every command there, and it runs GitHub's runner.
 - **app01** is the server: it runs your apps in Docker containers, behind a reverse proxy (Caddy).
-- After setup, the only things you do by hand are **reviewing and merging pull requests**. Everything else (tests,
+- After setup, the only manual step is **reviewing and merging pull requests**. Everything else (tests,
   scans, image builds, the deploy) runs automatically.
 
 ## How to read this guide
@@ -79,7 +79,7 @@ right-click (Windows Terminal).
 | **Docker / container** | Packages an app with everything it needs, so it runs the same everywhere |
 | **Caddy** | A reverse proxy: it receives web requests on app01 and passes each one to the right app |
 | **Runner** | A program on ci01 that runs GitHub Actions jobs inside your home network |
-| **Pull request (PR)** | A proposed change. Checks run on it, then a person reviews and merges it |
+| **Pull request (PR)** | A proposed change. Checks run on it, then the review and merge are done manually |
 | **Repo** (repository) | A project folder on GitHub, with its full history |
 
 ---
