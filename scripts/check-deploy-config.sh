@@ -16,6 +16,7 @@ caddy_image="$(grep -oE 'caddy:[^[:space:]]+@sha256:[0-9a-f]{64}' deploy/compose
 
 echo "== Caddyfile (in ${caddy_image})"
 docker pull -q "${caddy_image}"
+docker run --rm "${caddy_image}" caddy version
 docker run --rm -e APP01_IP=192.0.2.10 -v "$PWD/deploy/Caddyfile:/etc/caddy/Caddyfile:ro" \
   "${caddy_image}" caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
 echo "Caddyfile: ok"
