@@ -279,6 +279,9 @@ The dashboard (`http://<app01-ip>/`) updates every second, so you can watch it h
 - **Last deploy on app01**, at the bottom, is app01's own log of the deploy: pulling the new images, then replacing
   the containers. It should end with `finished, exit code 0`.
 
+Open the app and see your change (press **Ctrl+F5** if the browser shows the old copy). In this example, the change
+compared in [C4](#c4-check-what-you-changed) replaced the news page's heading.
+
 ![The dashboard after the deploy: every component up, every container healthy, and the deploy log ending with exit code 0](images/laptop/18-dashboard.png)
 
 Open the app and see your change (press **Ctrl+F5** if the browser shows the old copy). In this example, the change
