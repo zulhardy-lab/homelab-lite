@@ -110,7 +110,7 @@ def render(feed, error, updated):
         )
         body = f"<ol>{rows}</ol><p><small>Source: {e(feed['source'])}</small></p>"
     else:
-        body = "<p>No headlines yet.</p>"
+        body = "<p>No headlines.....sad.</p>"
     note = f"<p class='note'>{e(error)}; showing the last good copy.</p>" if error and feed else (
         f"<p class='note'>{e(error)}.</p>" if error else "")
     stamp = time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime(updated)) if updated else "never"
@@ -121,7 +121,7 @@ def render(feed, error, updated):
 body {{ font-family: system-ui, sans-serif; margin: 2rem auto; max-width: 48rem; padding: 0 1rem; color: #222; }}
 li {{ margin: .6rem 0; }} small {{ color: #666; }} .note {{ color: #8a5a00; }}
 </style></head><body>
-<h1>Top {TOP} headlines around the world</h1>
+<h1>Top {TOP} headlines in Asia and the World</h1>
 {note}{body}
 <p><small>Last updated {e(stamp)}. Headlines link to the original story.</small></p>
 </body></html>"""
