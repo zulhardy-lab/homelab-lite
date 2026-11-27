@@ -1,7 +1,10 @@
 ---
-# The status collector on app01: every 30 seconds it writes status.json (app01, Docker, containers, last deploy)
+# The status collector on app01: every second it writes status.json (app01, Docker, containers, last deploy)
 # for the dashboard. It runs as the deploy user, so the dashboard container never needs the Docker socket.
 # Run after deploy-access.yml: ansible-playbook playbooks/status.yml -K
+#
+# Earlier versions ran the collector from a 30-second timer (homelab-lite-status.timer). This playbook stops and
+# disables that timer; its unit file is left in place, and does nothing while disabled.
 
 - name: Status collector on app01
   hosts: app
@@ -14,8 +17,21 @@
         owner: root
         group: root
         mode: "0755"
+      notify: Restart the collector
 
-    - name: Collector service (runs once each time the timer fires)
+    - name: Look for the old 30-second timer
+      ansible.builtin.stat:
+        path: /etc/systemd/system/homelab-lite-status.timer
+      register: old_timer
+
+    - name: Stop and disable the old 30-second timer (the service below now loops by itself)
+      ansible.builtin.systemd_service:
+        name: homelab-lite-status.timer
+        state: stopped
+        enabled: false
+      when: old_timer.stat.exists
+
+    - name: Collector service (runs all the time, refreshes status.json every second)
       ansible.builtin.copy:
         dest: /etc/systemd/system/homelab-lite-status.service
         owner: root
@@ -23,42 +39,31 @@
         mode: "0644"
         content: |
           [Unit]
-          Description=homelab-lite: write status.json for the dashboard
+          Description=homelab-lite: write status.json for the dashboard, every second
           After=docker.service
 
           [Service]
-          Type=oneshot
+          Type=simple
           User={{ deploy_user }}
           Environment=STATUS_DIR={{ status_dir }}
           Environment=APP01_IP={{ app01_ip }}
+          Environment=INTERVAL=1
           ExecStart=/usr/local/bin/status-collector
-      notify: Reload systemd
-
-    - name: Collector timer (every 30 seconds)
-      ansible.builtin.copy:
-        dest: /etc/systemd/system/homelab-lite-status.timer
-        owner: root
-        group: root
-        mode: "0644"
-        content: |
-          [Unit]
-          Description=homelab-lite: refresh status.json every 30 seconds
-
-          [Timer]
-          OnBootSec=20s
-          OnUnitActiveSec=30s
-          AccuracySec=1s
+          Restart=always
+          RestartSec=5s
 
           [Install]
-          WantedBy=timers.target
-      notify: Reload systemd
+          WantedBy=multi-user.target
+      notify:
+        - Reload systemd
+        - Restart the collector
 
     - name: Apply systemd changes now
       ansible.builtin.meta: flush_handlers
 
-    - name: Start the timer now and after every reboot
+    - name: Start the collector now and after every reboot
       ansible.builtin.systemd_service:
-        name: homelab-lite-status.timer
+        name: homelab-lite-status.service
         state: started
         enabled: true
 
@@ -66,3 +71,8 @@
     - name: Reload systemd
       ansible.builtin.systemd_service:
         daemon_reload: true
+
+    - name: Restart the collector
+      ansible.builtin.systemd_service:
+        name: homelab-lite-status.service
+        state: restarted

@@ -398,7 +398,7 @@ Then, one at a time (each ends with a `PLAY RECAP`; every machine must show `fai
 ansible-playbook playbooks/base.yml -K            # OS check, hostnames, a few tools
 ansible-playbook playbooks/docker.yml -K          # Docker on app01 only
 ansible-playbook playbooks/deploy-access.yml -K   # 'deploy' user on app01; ci01's runner user may log in as it
-ansible-playbook playbooks/status.yml -K          # status collector on app01, every 30 s
+ansible-playbook playbooks/status.yml -K          # status collector on app01, every second
 ansible-playbook playbooks/heartbeat.yml -K       # ci01's heartbeat to app01, every 30 s
 ```
 
@@ -407,7 +407,7 @@ ansible-playbook playbooks/heartbeat.yml -K       # ci01's heartbeat to app01, e
 | `base.yml` | Stops if a VM isn't Ubuntu 26.04; sets the hostnames; installs Python, curl, SSH client |
 | `docker.yml` | Installs Docker and Docker Compose on **app01** from Ubuntu's own packages. ci01 never gets Docker |
 | `deploy-access.yml` | Creates the `deploy` user on app01 (it runs the containers) and gives ci01's runner user a key that can log in as `deploy` |
-| `status.yml` | Every 30 seconds, writes app01's state, Docker's state and the containers' state to a file the dashboard reads |
+| `status.yml` | Every second, writes app01's state, Docker's state and the containers' state to a file the dashboard reads (a service that keeps running, not a timer) |
 | `heartbeat.yml` | Every 30 seconds, ci01 tells app01 it's up and what the runner is doing, with a key that can only save that one message |
 
 ✅ **Check** (after about a minute):
@@ -585,7 +585,7 @@ Never commit or share: SSH private keys, your passwords, runner tokens.
 | `deploy` fails: `unauthorized` / `denied` pulling images | Packages are private | Make them public (Part 8) |
 | `deploy` fails: `Permission denied (publickey)` | deploy-access.yml not run, or app01 rebuilt | Re-run `deploy-access.yml` |
 | Dashboard: ci01 **down** | Heartbeat not arriving | On ci01: `systemctl status homelab-lite-heartbeat.service` |
-| Dashboard: status collector **stopped** | Timer not running | On app01: `systemctl status homelab-lite-status.service` |
+| Dashboard: status collector **stopped** | Collector service not running | On app01: `systemctl status homelab-lite-status.service`, then `journalctl -u homelab-lite-status.service -n 20` |
 | News page: "No headlines yet" | Feed down or blocked | Wait 15 minutes, or try another feed (The news app) |
 | A PR check failed | Read its log: Actions → the run → the red job | Fix it in the same PR; the checks run again on every push |
 
