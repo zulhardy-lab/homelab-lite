@@ -547,8 +547,8 @@ came back (for example when the feed is down), so a publisher's outage doesn't b
 
 ## Using an AI coding tool
 
-The rules for AI coding agents working in this repo are in [`AI-RULES.md`](../AI-RULES.md). AI tools don't read that
-file on their own: when you start, tell your tool to read `AI-RULES.md` and follow it.
+The rules for AI coding agents working in this repo are in [`AGENTS.md`](../AGENTS.md). Many AI coding tools load
+that file on their own. If yours doesn't, tell it to read `AGENTS.md` and follow it when you start.
 
 ---
 
