@@ -77,7 +77,7 @@ scripts/              What the pipelines actually do (the workflow files only ca
 .github/workflows/    pr-checks.yml (every pull request) and deploy.yml (after a merge)
 docs/SETUP.md         The beginner guide: build the lab
 docs/LAPTOP.md        Working on the code from your laptop (VS Code + Git)
-AI-RULES.md           Rules for AI coding assistants working in this repo
+AGENTS.md             Rules for AI coding assistants working in this repo
 ```
 
 ## Ready for more?
